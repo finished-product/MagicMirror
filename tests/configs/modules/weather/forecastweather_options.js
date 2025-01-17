@@ -1,9 +1,6 @@
-/* Magic Mirror Test config default weather
- *
- * By fewieden https://github.com/fewieden
- * MIT Licensed.
- */
-let config = require(process.cwd() + "/tests/configs/default.js").configFactory({
+let config = {
+	address: "0.0.0.0",
+	ipWhitelist: [],
 	timeFormat: 12,
 
 	modules: [
@@ -13,16 +10,16 @@ let config = require(process.cwd() + "/tests/configs/default.js").configFactory(
 			config: {
 				type: "forecast",
 				location: "Munich",
-				apiKey: "fake key",
+				weatherProvider: "openweathermap",
 				weatherEndpoint: "/forecast/daily",
-				initialLoadDelay: 3000,
+				mockData: '"#####WEATHERDATA#####"',
 				showPrecipitationAmount: true,
 				colored: true,
 				tableClass: "myTableClass"
 			}
 		}
 	]
-});
+};
 
 /*************** DO NOT EDIT THE LINE BELOW ***************/
 if (typeof module !== "undefined") {

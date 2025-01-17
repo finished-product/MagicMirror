@@ -1,11 +1,6 @@
-/* Magic Mirror Test calendar calendar
- *
- * This configuration is a wrong authentication
- *
- * By Rodrigo Ramírez Norambuena https://rodrigoramirez.com
- * MIT Licensed.
- */
-let config = require(process.cwd() + "/tests/configs/default.js").configFactory({
+let config = {
+	address: "0.0.0.0",
+	ipWhitelist: [],
 	timeFormat: 12,
 
 	modules: [
@@ -16,7 +11,7 @@ let config = require(process.cwd() + "/tests/configs/default.js").configFactory(
 				calendars: [
 					{
 						maximumNumberOfDays: 10000,
-						url: "http://localhost:8020/tests/configs/data/calendar_test.ics",
+						url: "http://localhost:8020/tests/mocks/calendar_test.ics",
 						auth: {
 							user: "MagicMirror",
 							pass: "StairwayToHeaven",
@@ -27,7 +22,7 @@ let config = require(process.cwd() + "/tests/configs/default.js").configFactory(
 			}
 		}
 	]
-});
+};
 
 /*************** DO NOT EDIT THE LINE BELOW ***************/
 if (typeof module !== "undefined") {

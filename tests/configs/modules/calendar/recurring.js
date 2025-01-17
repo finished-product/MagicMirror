@@ -1,9 +1,6 @@
-/* Magic Mirror Test config custom calendar
- *
- * By Rejas
- * MIT Licensed.
- */
-let config = require(process.cwd() + "/tests/configs/default.js").configFactory({
+let config = {
+	address: "0.0.0.0",
+	ipWhitelist: [],
 	timeFormat: 12,
 
 	modules: [
@@ -15,13 +12,13 @@ let config = require(process.cwd() + "/tests/configs/default.js").configFactory(
 					{
 						maximumEntries: 6,
 						maximumNumberOfDays: 3650,
-						url: "http://localhost:8080/tests/configs/data/calendar_test_recurring.ics"
+						url: "http://localhost:8080/tests/mocks/calendar_test_recurring.ics"
 					}
 				]
 			}
 		}
 	]
-});
+};
 
 /*************** DO NOT EDIT THE LINE BELOW ***************/
 if (typeof module !== "undefined") {

@@ -1,9 +1,6 @@
-/* Magic Mirror Test config sample module alert
- *
- * By rejas
- * MIT Licensed.
- */
 let config = {
+	address: "0.0.0.0",
+	ipWhitelist: [],
 	modules: [
 		{
 			module: "alert",

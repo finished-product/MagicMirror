@@ -1,6 +1,9 @@
-const GitHelper = require(__dirname + "/git_helper.js");
-const defaultModules = require(__dirname + "/../defaultmodules.js");
 const NodeHelper = require("node_helper");
+const defaultModules = require("../defaultmodules");
+const GitHelper = require("./git_helper");
+const UpdateHelper = require("./update_helper");
+
+const ONE_MINUTE = 60 * 1000;
 
 module.exports = NodeHelper.create({
 	config: {},
@@ -8,63 +11,90 @@ module.exports = NodeHelper.create({
 	updateTimer: null,
 	updateProcessStarted: false,
 
-	gitHelper: new GitHelper.gitHelper(),
+	gitHelper: new GitHelper(),
+	updateHelper: null,
 
-	start: function () {},
-
-	configureModules: async function (modules) {
-		// Push MagicMirror itself , biggest chance it'll show up last in UI and isn't overwritten
-		// others will be added in front
-		// this method returns promises so we can't wait for every one to resolve before continuing
-		this.gitHelper.add("default");
-
-		for (let moduleName in modules) {
+	async configureModules (modules) {
+		for (const moduleName of modules) {
 			if (!this.ignoreUpdateChecking(moduleName)) {
-				this.gitHelper.add(moduleName);
+				await this.gitHelper.add(moduleName);
 			}
+		}
+
+		if (!this.ignoreUpdateChecking("MagicMirror")) {
+			await this.gitHelper.add("MagicMirror");
 		}
 	},
 
-	socketNotificationReceived: function (notification, payload) {
-		if (notification === "CONFIG") {
-			this.config = payload;
-		} else if (notification === "MODULES") {
-			// if this is the 1st time thru the update check process
-			if (!this.updateProcessStarted) {
-				this.updateProcessStarted = true;
-				this.configureModules(payload).then(() => this.performFetch());
-			}
+	async socketNotificationReceived (notification, payload) {
+		switch (notification) {
+			case "CONFIG":
+				this.config = payload;
+				this.updateHelper = new UpdateHelper(this.config);
+				await this.updateHelper.check_PM2_Process();
+				break;
+			case "MODULES":
+				// if this is the 1st time thru the update check process
+				if (!this.updateProcessStarted) {
+					this.updateProcessStarted = true;
+					await this.configureModules(payload);
+					await this.performFetch();
+				}
+				break;
+			case "SCAN_UPDATES":
+				// 1st time of check allows to force new scan
+				if (this.updateProcessStarted) {
+					clearTimeout(this.updateTimer);
+					await this.performFetch();
+				}
+				break;
 		}
 	},
 
-	performFetch: async function () {
-		for (let gitInfo of await this.gitHelper.getRepos()) {
-			this.sendSocketNotification("STATUS", gitInfo);
+	async performFetch () {
+		const repos = await this.gitHelper.getRepos();
+
+		for (const repo of repos) {
+			this.sendSocketNotification("REPO_STATUS", repo);
+		}
+
+		const updates = await this.gitHelper.checkUpdates();
+
+		if (this.config.sendUpdatesNotifications && updates.length) {
+			this.sendSocketNotification("UPDATES", updates);
+		}
+
+		if (updates.length) {
+			const updateResult = await this.updateHelper.parse(updates);
+			for (const update of updateResult) {
+				if (update.inProgress) {
+					this.sendSocketNotification("UPDATE_STATUS", update);
+				}
+			}
 		}
 
 		this.scheduleNextFetch(this.config.updateInterval);
 	},
 
-	scheduleNextFetch: function (delay) {
-		if (delay < 60 * 1000) {
-			delay = 60 * 1000;
-		}
-
-		let self = this;
+	scheduleNextFetch (delay) {
 		clearTimeout(this.updateTimer);
-		this.updateTimer = setTimeout(function () {
-			self.performFetch();
-		}, delay);
+
+		this.updateTimer = setTimeout(
+			() => {
+				this.performFetch();
+			},
+			Math.max(delay, ONE_MINUTE)
+		);
 	},
 
-	ignoreUpdateChecking: function (moduleName) {
+	ignoreUpdateChecking (moduleName) {
 		// Should not check for updates for default modules
-		if (defaultModules.indexOf(moduleName) >= 0) {
+		if (defaultModules.includes(moduleName)) {
 			return true;
 		}
 
 		// Should not check for updates for ignored modules
-		if (this.config.ignoreModules.indexOf(moduleName) >= 0) {
+		if (this.config.ignoreModules.includes(moduleName)) {
 			return true;
 		}
 
